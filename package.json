@@ -1,0 +1,24 @@
+{
+  "name": "turbo-circuit",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "TURBO CIRCUIT — a Three.js 8-kart arcade racer with drift-boost, items and a deterministic 60Hz simulation core",
+  "scripts": {
+    "serve": "node serve.mjs",
+    "start": "node serve.mjs",
+    "lan": "node serve.mjs --lan",
+    "test": "node test/sim.test.mjs",
+    "test:track": "node test/track.test.mjs",
+    "test:render": "node test/render.test.mjs",
+    "test:browser": "node test/browser-check.mjs",
+    "check": "node test/browser-check.mjs",
+    "verify": "node test/run-all.mjs",
+    "shots": "node tools/capture.mjs --quality high",
+    "pack": "node tools/pack.mjs && node tools/verify-dist.mjs",
+    "deploy": "node tools/deploy.mjs",
+    "verify:live": "node tools/verify-dist.mjs --live https://hadimustaffa.github.io/turbo-circuit/"
+  },
+  "engines": { "node": ">=20" },
+  "homepage": "https://hadimustaffa.github.io/turbo-circuit/"
+}
