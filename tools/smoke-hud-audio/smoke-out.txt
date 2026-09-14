@@ -1,0 +1,161 @@
+
+=== MODULE SURFACE ===
+  ok    hud.js exports createHUD   [got "function" want "function"]
+  ok    audio.js exports createAudio   [got "function" want "function"]
+
+=== HUD — 300 scripted frames ===
+  ok    hud.update is a function   [got "function" want "function"]
+  ok    hud.showTitle is a function   [got "function" want "function"]
+  ok    hud.hide is a function   [got "function" want "function"]
+  ok    hud.showResults is a function   [got "function" want "function"]
+  ok    hud.setLap is a function   [got "function" want "function"]
+  ok    hud.dispose is a function   [got "function" want "function"]
+  300 updates in 19.4 ms  (0.065 ms/frame)
+  ok    update() survived 300 scripted frames without throwing
+  ok    minimap redraws capped over 300 frames (cap 1 per 4 updates)   [redraws=75]
+
+=== HUD — steady state (identical state + opts, 300 more frames) ===
+  ok    DOM nodes created across 300 steady-state frames   [got 0 want 0]
+  event-driven creations over the scripted 300 frames: 48
+
+=== HUD — readouts ===
+  ok    #hud-position reads "1st" for place 1   [got "1st" want "1st"]
+  ok    place 2 -> "2nd"   [got "2nd" want "2nd"]
+  ok    place 3 -> "3rd"   [got "3rd" want "3rd"]
+  ok    place 4 -> "4th"   [got "4th" want "4th"]
+  ok    #hud-lap reads "LAP 3/3"   [got "LAP 3/3" want "LAP 3/3"]
+  ok    #hud-coins tracks racer.coins   [got "◎ 8" want "◎ 8"]
+  ok    #hud-speed .num is a number   [num=79]
+  ok    #hud-speedbar > i has a % width   [width=62.7%]
+  ok    speed unit span kept as km/h
+
+=== HUD — item slot + roulette ===
+  ok    item glyph drawn for Triple Nitro   [icon="▲▲"]
+  ok    triple-nitro remaining-uses count in .count   [got "2" want "2"]
+  ok    roulette cycles while itemRollTicks > 0   [distinct glyphs=7 ❋▲▲▲◍⬤➤✷]
+  ok    roulette blanks the static glyph   [got "" want ""]
+  ok    no item -> .empty on #hud-item
+
+=== HUD — drift meter / slipstream / ink / wrong way ===
+  ok    drift meter width follows driftCharge   [12.5% -> 25.0% -> 50.0% -> 75.0%]
+  ok    drift meter colour walks the three PHYSICS tiers   [#c06bff #3ad2ff #ff9a2e #c06bff]
+  ok    #hud-drift gets .on while drifting
+  ok    #hud-drift-label gets .on while drifting
+  ok    #hud-slip .on while slipstreamTicks > 0
+  ok    #hud-ink opacity follows inkTicks   [0.96 -> 0.00]
+  ok    WRONG WAY raised while progress fell over the sustained window   [frames on=80]
+  ok    WRONG WAY cleared once progress recovered   [frames off in 211..239=29]
+
+=== HUD — notifications ===
+  ok    self-detected "LAP 2/3"
+  ok    self-detected "FINAL LAP"
+  ok    self-detected "3RD PLACE!"
+  ok    self-detected "1ST PLACE!"
+  ok    opts.notifications appended into #hud-notify
+  ok    #hud-notify children stay capped   [max=4]
+
+=== HUD — standings panel (diffed) ===
+  ok    standings panel holds 8 rows   [got 8 want 8]
+  ok    standings rows are reused, never rebuilt (identity stable over 60 frames)
+  ok    every row has a colour dot   [#e8443a #2fb8d6 #f28b1f]
+  ok    player row carries .me
+  ok    every row shows a lap number   [L3 L1 L3 L3 L1 L2 L3 L1]
+  ok    standings reorder when the race order changes   [Bolt Vexx -> Ola Mint]
+
+=== HUD — minimap ===
+  ok    offscreen outline canvas created once
+  offscreen raster: moveTo=2 lineTo=200 strokes=4 clearRect=1 (samples=200)
+  ok    live minimap blits the offscreen circuit   [drawImage=175]
+  ok    exactly 8 dots plotted per redraw   [arcs/redraw=8.00]
+
+=== HUD — setLap / showTitle / showResults / hide / dispose ===
+  ok    setLap writes the lap counter   [got "LAP 2/3" want "LAP 2/3"]
+  ok    showTitle writes #title-logo   [got "TURBO CIRCUIT" want "TURBO CIRCUIT"]
+  ok    showResults creates #results (index.html ships no such element)
+  ok    #results inserted into the overlay card   [got true want true]
+  ok    showResults writes a real <table>
+  ok    one row per finisher   [got 11 want 11]
+  row 1 cells: ["1st","","Bolt Vexx","3","0:50.000","15"]
+  ok    row 1 position + ordinal   [got "1st" want "1st"]
+  ok    row 3 ordinal   [got "3rd" want "3rd"]
+  ok    BEST LAP falls back to the race average when no split was observed   [got "0:50.000" want "0:50.000"]
+  ok    BEST LAP from an observed lap split (player)   [got "1:40.000" want "1:40.000"]
+  ok    cup points column present when data.points is given   [pts=15]
+  ok    points table applied by place   [got "15" want "15"]
+  ok    colour swatch cell present
+  ok    player's row carries .me   [got "me" want "me"]
+  ok    player's row labelled (YOU)
+  ordinals: 1st 2nd 3rd 4th 5th 6th 7th 8th 9th 10th 11th
+  ok    ordinal 11 -> "11th" (the 11/12/13 trap)   [got "11th" want "11th"]
+  ok    ordinal 1 -> "1st"   [got "1st" want "1st"]
+  ok    ordinal 3 -> "3rd"   [got "3rd" want "3rd"]
+  ok    ordinal 4 -> "4th"   [got "4th" want "4th"]
+  ok    footnote added when an average was substituted
+  ok    a pushed notification is pending before hide()   [children=4]
+  ok    hide() adds .hidden to #hud
+  ok    hide() clears pending notifications   [got 0 want 0]
+  ok    showResults still renders after hide()   [got 11 want 11]
+  ok    showResults survives hide() (main.js calls hide() on a new race, not at race end)
+  ok    post-dispose calls create no nodes and never throw   [got 0 want 0]
+  ok    dispose() removed the #results node it created   [got null want null]
+  ok    createHUD can be created again after dispose()
+
+=== AUDIO — no AudioContext at all ===
+  ok    no AudioContext: nothing throws
+  ok    no AudioContext: zero voices started   [got 0 want 0]
+  ok    no AudioContext: graph never built   [got false want false]
+
+=== AUDIO — muted from the start (the --mute-audio target) ===
+  ok    audio.muted is a boolean property   [got "boolean" want "boolean"]
+  ok    muted: nothing throws
+  ok    muted: internal voice counter is 0   [got 0 want 0]
+  ok    muted: independent AudioContext start() count is 0 (no sound can exist)   [got 0 want 0]
+  ok    muted: play() returns false for every event name   [got 0 want 0]
+  muted: playCalls=54 skipped=54 engineCalls=300 resumeCalls=0 ctxState=none graphReady=false
+
+=== AUDIO — unmuted: unlock then every event ===
+  ok    unmuted: nothing throws
+  ok    all 16 CONTRACTS §8 events + coin + explosion play   [got 18 want 18]
+  ok    unknown event name returns false instead of throwing   [got false want false]
+  ok    unmuted: voices started   [internal=42 oneShot=36 bed=6]
+  ok    internal voice counter == harness AudioContext start() count   [got 42 want 42]
+  ok    resume() attempted on the suspended context (rejection swallowed)   [resumeCalls=1]
+  unmuted: voices={"total":42,"oneShot":36,"music":0,"bed":6} harnessStarts=42 ctxState=running
+
+=== AUDIO — engine() is allocation-free ===
+  ok    engine() survived 300 frames
+  ok    engine() starts no voices across 300 frames (pure AudioParam writes)   [got 42 want 42]
+
+=== AUDIO — procedural music loop ===
+  ok    music(true) schedules synthesised bass + arpeggio notes   [music voices in 225 ms=4]
+  ok    music(false) stops the scheduler (no further voices)   [got 10 want 10]
+
+=== AUDIO — blocked context (resume() rejects) + mute mid-race ===
+  ok    blocked ctx: unlock/play/engine/music never throw
+  ok    post-dispose calls on a disposed instance never throw
+  ok    post-dispose calls start no voices   [got 44 want 44]
+
+=== AUDIO — mute after unlock freezes the counter ===
+  ok    live context started voices   [voices=8]
+  ok    muting mid-race stops every new voice (counter frozen)   [got 8 want 8]
+  ok    audio.muted reflects setMuted(true)   [got true want true]
+  ok    unmuting resumes audible voices
+
+=== AUDIO — dispose before unlock ===
+  ok    dispose() before unlock() never throws
+
+=== PROMISE + HUD SAFETY ===
+  ok    unhandled promise rejections across the whole run (resume/close always reject here)   [got 0 want 0]
+  ok    update(null)/empty state/showResults({}) never throw
+  ok    audio.engine(null)/play(null) never throw
+  ok    missing HUD markup degrades to no-ops instead of throwing
+
+=== SUMMARY ===
+  hud.js: 300 scripted frames -> 48 nodes created (event-driven only)
+  hud.js: 300 steady-state frames -> 0 nodes created
+  hud.js: minimap redraws in the scripted 300 frames = 75 (cap 76); total=175, arcs=1400
+  hud.js: worst-case #hud-notify children = 4; update cost = 0.065 ms/frame
+  audio.js: voices muted = 0 (harness start() calls = 0), voices unmuted = 42 (harness start() calls = 42)
+  assertions: 106 passed, 0 failed
+
+RESULT: ALL CHECKS PASSED
