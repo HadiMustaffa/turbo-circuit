@@ -689,7 +689,7 @@ async function main() {
           // empty .some() is false, not "unproven"). After a fair run at it, park the kart on a
           // box so the REAL pickup path (stepPickups -> giveItem -> rollItem) still runs. The
           // per-racer cooldown itself is asserted directly in test/sim.test.mjs.
-          if (!p.item && drove >= 1200) {
+          if (!p.item && drove >= 600) {
             const cands = (s.pickups || []).map(x => ({ x, cd: x.cooldowns[s.playerIndex] - s.tick }));
             cands.sort((a, c) => a.cd - c.cd);
             if (cands.length) {
@@ -745,6 +745,11 @@ async function main() {
     console.log(`   throw path: cannonball granted, pressed → slot ${throwTest.slotAfterPress || 'empty'}, owned entities ${throwTest.before} → ${throwTest.after}, live kinds [${throwTest.kinds.join(', ')}]`);
 
     ok('the track has item boxes placed by tracks.js', itemRun.boxes > 0, `${itemRun.boxes} pickups in state`);
+    // Assert the SAMPLE exists before asserting anything about it. Without this, an empty `seq`
+    // makes every .some() below fail with a confusing message instead of naming the real problem
+    // (the driver never reached a box), and a .some() over an empty array is false — not unproven.
+    ok('the drive actually collected at least one item to test with', itemRun.seq.length > 0,
+      `collected ${itemRun.seq.length} item(s) over ${itemRun.drove} ticks of driving`);
     ok('driving over an item box granted an item', itemRun.seq.length > 0,
       `${itemRun.seq.length} item(s) collected while driving`);
     ok('every collected item id is a real ITEM from content.js',
