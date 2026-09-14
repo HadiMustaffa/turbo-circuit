@@ -4,7 +4,7 @@
 //
 // Produces:
 //   dist/                        index.html + src/ + vendor/  (everything the game fetches)
-//   dist/../arena-breach.zip     the same files, zipped for itch.io (index.html at the root)
+//   turbo-circuit.zip            the same files, zipped for itch.io (index.html at the root)
 //
 // The game is fully static with no build step: this copies, it does not compile. If a file
 // is missing from this list the game will 404 on the host, so `tools/verify-dist.mjs` boots
@@ -17,7 +17,7 @@ import { fileURLToPath } from 'node:url';
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(HERE, '..');
 const DIST = join(ROOT, 'dist');
-const ZIP = join(ROOT, 'arena-breach.zip');
+const ZIP = join(ROOT, 'turbo-circuit.zip');
 
 // Only what the browser actually fetches.
 const INCLUDE = ['index.html', 'src', 'vendor'];

@@ -2,8 +2,8 @@
 // ES modules must be fetched over http:// (file:// is blocked by CORS), so the game needs a
 // server; this one needs no install.
 //
-//   node serve.mjs              → http://127.0.0.1:8123      (this machine only)
-//   node serve.mjs --lan        → http://192.168.x.x:8123    (everyone on your wifi)
+//   node serve.mjs              → http://127.0.0.1:8130      (this machine only)
+//   node serve.mjs --lan        → http://192.168.x.x:8130    (everyone on your wifi)
 //   node serve.mjs --root dist  → serve a packed build instead of the source tree
 //   PORT=9000 node serve.mjs    → pick a port
 import { createServer } from 'node:http';
@@ -18,7 +18,7 @@ const flag = (name, fallback = null) => {
 };
 const LAN = argv.includes('--lan');
 const ROOT = resolve(process.cwd(), flag('root', '.'));
-const PORT = Number(process.env.PORT || flag('port', 8123));
+const PORT = Number(process.env.PORT || flag('port', 8130));
 const HOST = LAN ? '0.0.0.0' : '127.0.0.1';
 const TYPES = {
   '.html': 'text/html; charset=utf-8',
@@ -59,8 +59,18 @@ const server = createServer(async (req, res) => {
 const lanIps = () => Object.values(networkInterfaces()).flat()
   .filter(i => i && i.family === 'IPv4' && !i.internal).map(i => i.address);
 
+server.on('error', (e) => {
+  if (e && e.code === 'EADDRINUSE') {
+    console.error(`port ${PORT} is already in use — TURBO CIRCUIT is probably already running.`);
+    console.error(`  open http://127.0.0.1:${PORT}/ , or pick another port:  PORT=8131 node serve.mjs`);
+  } else {
+    console.error('server error:', (e && e.message) || e);
+  }
+  process.exit(1);
+});
+
 server.listen(PORT, HOST, () => {
-  console.log(`arena live on http://127.0.0.1:${PORT}`);
+  console.log(`TURBO CIRCUIT live on http://127.0.0.1:${PORT}`);
   if (LAN) {
     const ips = lanIps();
     if (!ips.length) console.log('  (no LAN address found — are you on wifi?)');

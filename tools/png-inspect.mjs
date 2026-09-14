@@ -5,7 +5,8 @@
 // turns a screenshot into something readable in a terminal, so composition problems
 // (black frame, HUD missing, everything in one corner) are actually detectable.
 //
-//   node tools/png-inspect.mjs shots/arena-horde.png [--cols 96] [--rows 34]
+//   node tools/png-inspect.mjs shots/race-hud.png [--cols 96] [--rows 34]
+//   node tools/png-inspect.mjs shots/start-grid.png
 import { readFileSync } from 'node:fs';
 import { inflateSync } from 'node:zlib';
 
