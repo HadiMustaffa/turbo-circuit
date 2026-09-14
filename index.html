@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#0a0e1a">
+<title>TURBO CIRCUIT — Kart Grand Prix</title>
+<style>
+  /* Theme variables. hud.js / fx.js should read these rather than inventing colours. */
+  :root{
+    --ink:#0a0e1a;
+    --hud-text:#ffffff;
+    --hud-edge:#7cf9ff;
+    --hud-warm:#ffd166;
+    --hud-back:rgba(8,10,20,0.55);
+    --warn:#ff4d6d;
+    --ok:#5efc8d;
+    --font: "Century Gothic", "ITC Avant Garde", "Futura", "Trebuchet MS", system-ui, sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%;overflow:hidden;background:#0a0e1a;color:var(--hud-text);
+    font-family:var(--font);-webkit-tap-highlight-color:transparent;touch-action:none}
+  #app{position:fixed;inset:0}
+  canvas#gl{position:absolute;inset:0;width:100%;height:100%;display:block}
+
+  /* ── in-race HUD (owned by src/hud.js) ───────────────────────────────── */
+  #hud{position:absolute;inset:0;pointer-events:none;font-weight:700;
+       text-shadow:0 2px 6px rgba(0,0,0,.65);letter-spacing:.02em}
+  #hud.hidden{display:none}
+  .panel{background:var(--hud-back);border:2px solid rgba(124,249,255,.35);border-radius:12px;
+         backdrop-filter:blur(3px)}
+  #hud-position{position:absolute;left:22px;top:18px;font-size:64px;line-height:1;
+    color:var(--hud-text);-webkit-text-stroke:2px rgba(0,0,0,.5)}
+  #hud-position .ord{font-size:26px;vertical-align:super}
+  #hud-lap{position:absolute;left:26px;top:92px;font-size:22px;color:var(--hud-warm)}
+  #hud-coins{position:absolute;left:26px;top:122px;font-size:18px;color:var(--hud-warm);opacity:.95}
+  #hud-speed{position:absolute;right:26px;bottom:26px;text-align:right}
+  #hud-speed .num{font-size:52px;line-height:.9}
+  #hud-speed .unit{font-size:16px;opacity:.8}
+  #hud-speedbar{position:absolute;right:26px;bottom:14px;width:190px;height:8px;
+    background:rgba(255,255,255,.18);border-radius:4px;overflow:hidden}
+  #hud-speedbar>i{display:block;height:100%;width:0%;
+    background:linear-gradient(90deg,#7cf9ff,#ffd166,#ff4d6d);transition:width .08s linear}
+  #hud-item{position:absolute;left:50%;top:16px;transform:translateX(-50%);
+    width:104px;height:104px;display:grid;place-items:center;border-radius:16px}
+  #hud-item.empty{opacity:.28}
+  #hud-item-icon{font-size:52px;line-height:1}
+  #hud-item-roll{font-size:34px;letter-spacing:-2px}
+  #hud-item .count{position:absolute;right:8px;bottom:6px;font-size:20px;color:var(--hud-warm)}
+  #hud-minimap{position:absolute;right:24px;top:18px;padding:8px;border-radius:14px}
+  #minimap{display:block;width:184px;height:184px}
+  #hud-drift{position:absolute;left:50%;bottom:26px;transform:translateX(-50%);
+    width:230px;height:14px;background:rgba(255,255,255,.16);border-radius:7px;overflow:hidden;opacity:0;
+    transition:opacity .15s}
+  #hud-drift.on{opacity:1}
+  #hud-drift>i{display:block;height:100%;width:0%;background:#3ad2ff}
+  #hud-drift>u{position:absolute;top:0;bottom:0;width:2px;background:rgba(255,255,255,.75)}
+  #hud-drift-label{position:absolute;left:50%;bottom:44px;transform:translateX(-50%);
+    font-size:15px;letter-spacing:.18em;opacity:0;transition:opacity .15s}
+  #hud-drift-label.on{opacity:1}
+  #hud-slip{position:absolute;left:50%;bottom:70px;transform:translateX(-50%);
+    font-size:15px;letter-spacing:.18em;color:var(--hud-edge);opacity:0;transition:opacity .15s}
+  #hud-slip.on{opacity:1}
+  #hud-notify{position:absolute;left:50%;top:34%;transform:translateX(-50%);
+    display:flex;flex-direction:column;align-items:center;gap:6px;width:min(720px,86vw)}
+  .notify{font-size:40px;text-align:center;animation:notify 1.9s ease-out forwards;
+    -webkit-text-stroke:2px rgba(0,0,0,.45)}
+  .notify.small{font-size:26px;color:var(--hud-warm)}
+  @keyframes notify{0%{opacity:0;transform:translateY(18px) scale(.86)}
+    14%{opacity:1;transform:translateY(0) scale(1.06)} 24%{transform:translateY(0) scale(1)}
+    78%{opacity:1} 100%{opacity:0;transform:translateY(-26px) scale(1)}}
+  #hud-standing{position:absolute;left:22px;bottom:22px;padding:10px 12px;min-width:212px;font-size:15px}
+  #hud-standing .row{display:flex;gap:8px;align-items:center;padding:1px 0;opacity:.92}
+  #hud-standing .row.me{opacity:1;color:var(--hud-edge)}
+  #hud-standing .dot{width:9px;height:9px;border-radius:50%;flex:0 0 9px}
+  #hud-standing .pos{width:20px;text-align:right;font-variant-numeric:tabular-nums}
+  #hud-standing .nm{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #hud-standing .lap{opacity:.7;font-size:12px}
+  #hud-warn{position:absolute;left:50%;top:12px;transform:translateX(-50%);font-size:17px;
+    letter-spacing:.18em;color:var(--warn);opacity:0;transition:opacity .2s}
+  #hud-warn.on{opacity:1}
+  #hud-ink{position:absolute;inset:0;opacity:0;transition:opacity .25s;
+    background:radial-gradient(ellipse at 50% 46%, rgba(10,8,26,0) 22%, rgba(10,8,26,.86) 68%);
+    pointer-events:none}
+
+  /* ── overlays: title / menu / countdown / results (main.js + hud.js) ── */
+  #overlay{position:absolute;inset:0;display:grid;place-items:center;
+    background:radial-gradient(ellipse at 50% 30%,rgba(10,14,26,.55),rgba(6,8,16,.94));
+    transition:opacity .35s;z-index:5}
+  #overlay.hidden{opacity:0;pointer-events:none}
+  #overlay .card{width:min(880px,92vw);padding:30px 34px;border-radius:22px;text-align:center;
+    background:linear-gradient(160deg,rgba(14,20,38,.94),rgba(8,10,22,.96));
+    border:2px solid rgba(124,249,255,.3);box-shadow:0 30px 90px rgba(0,0,0,.6)}
+  #title-logo{font-size:clamp(34px,7vw,76px);line-height:.95;letter-spacing:.04em;
+    background:linear-gradient(180deg,#fff,#7cf9ff 55%,#2b8bd6);
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+    filter:drop-shadow(0 4px 18px rgba(60,190,255,.45))}
+  #title-sub{margin-top:6px;font-size:clamp(13px,1.7vw,18px);letter-spacing:.34em;
+    color:var(--hud-warm);text-transform:uppercase}
+  #title-blurb{margin:16px auto 4px;max-width:56ch;font-size:15px;opacity:.82;line-height:1.5}
+  #menu{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;margin-top:22px}
+  .btn{pointer-events:auto;cursor:pointer;font:inherit;font-weight:700;font-size:17px;
+    padding:13px 22px;border-radius:12px;color:#06131c;border:none;
+    background:linear-gradient(180deg,#bff6ff,#7cf9ff);box-shadow:0 6px 0 #2f8fb0;transition:transform .08s}
+  .btn:active{transform:translateY(3px);box-shadow:0 3px 0 #2f8fb0}
+  .btn.ghost{background:transparent;color:#cfefff;border:2px solid rgba(124,249,255,.5);box-shadow:none}
+  .btn.sel{outline:3px solid var(--hud-warm);outline-offset:2px}
+  #keyhelp{margin-top:18px;font-size:13px;opacity:.66;line-height:1.7}
+  #keyhelp kbd{background:rgba(255,255,255,.12);border-radius:5px;padding:2px 6px;font-family:inherit}
+  #countdown{position:absolute;left:50%;top:44%;transform:translate(-50%,-50%);z-index:6;
+    font-size:clamp(80px,17vw,190px);font-weight:700;color:#fff;
+    -webkit-text-stroke:3px rgba(0,0,0,.35);opacity:0;transition:opacity .12s;pointer-events:none}
+  #countdown.on{opacity:1;animation:cd .9s ease-out}
+  @keyframes cd{0%{transform:translate(-50%,-50%) scale(1.7)}100%{transform:translate(-50%,-50%) scale(1)}}
+  #results{margin-top:16px;text-align:left;font-size:16px}
+  #results table{width:100%;border-collapse:collapse}
+  #results th{font-size:12px;letter-spacing:.16em;opacity:.6;text-align:left;padding:6px 8px;
+    border-bottom:1px solid rgba(255,255,255,.16);text-transform:uppercase}
+  #results td{padding:6px 8px;border-bottom:1px solid rgba(255,255,255,.07)}
+  #results tr.me td{color:var(--hud-edge);font-weight:700}
+  #results .sw{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:8px;
+    vertical-align:-1px}
+  #loading{position:absolute;inset:0;display:grid;place-items:center;z-index:8;
+    background:#0a0e1a;color:var(--hud-edge);letter-spacing:.3em;font-size:14px}
+  #loading.hidden{display:none}
+
+  /* ── touch controls ──────────────────────────────────────────────────── */
+  #touch{position:absolute;inset:0;pointer-events:none;z-index:4;display:none}
+  body.touch #touch{display:block}
+  #touch .tbtn{position:absolute;pointer-events:auto;display:grid;place-items:center;
+    border-radius:50%;background:rgba(255,255,255,.1);border:2px solid rgba(255,255,255,.34);
+    color:#fff;font-size:20px;font-weight:700;user-select:none}
+  #touch .tbtn.held{background:rgba(124,249,255,.42)}
+  #t-accel{right:20px;bottom:150px;width:96px;height:96px}
+  #t-brake{right:126px;bottom:96px;width:76px;height:76px;font-size:16px}
+  #t-left{left:24px;bottom:170px;width:84px;height:84px}
+  #t-right{left:120px;bottom:96px;width:84px;height:84px}
+  #t-drift{right:26px;bottom:36px;width:76px;height:76px;font-size:15px}
+  #t-item{left:50%;bottom:26px;transform:translateX(-50%);width:78px;height:78px;font-size:15px}
+</style>
+</head>
+<body>
+<div id="app">
+  <canvas id="gl"></canvas>
+
+  <!-- in-race HUD — built and updated by src/hud.js -->
+  <div id="hud" class="hidden">
+    <div id="hud-position">1<span class="ord">st</span></div>
+    <div id="hud-lap">LAP 1/3</div>
+    <div id="hud-coins">◎ 0</div>
+    <div id="hud-speed"><span class="num">0</span> <span class="unit">km/h</span></div>
+    <div id="hud-speedbar"><i></i></div>
+    <div id="hud-item" class="panel empty"><span id="hud-item-icon">—</span><span id="hud-item-roll"></span><span class="count"></span></div>
+    <div id="hud-minimap" class="panel"><canvas id="minimap" width="368" height="368"></canvas></div>
+    <div id="hud-drift"><i></i><u style="left:22%"></u><u style="left:45%"></u><u style="left:72%"></u></div>
+    <div id="hud-drift-label">DRIFT</div>
+    <div id="hud-slip">SLIPSTREAM</div>
+    <div id="hud-warn">WRONG WAY</div>
+    <div id="hud-notify"></div>
+    <div id="hud-standing"></div>
+    <div id="hud-ink"></div>
+  </div>
+
+  <!-- touch controls: bound generically by src/input.js via data-in -->
+  <div id="touch">
+    <div class="tbtn" id="t-accel" data-in="accel">GAS</div>
+    <div class="tbtn" id="t-brake" data-in="brake">BRAKE</div>
+    <div class="tbtn" id="t-left"  data-in="left">◀</div>
+    <div class="tbtn" id="t-right" data-in="right">▶</div>
+    <div class="tbtn" id="t-drift" data-in="drift">DRIFT</div>
+    <div class="tbtn" id="t-item"  data-in="item">ITEM</div>
+  </div>
+
+  <!-- menus: visibility + flow owned by src/main.js, contents written by hud.js -->
+  <div id="overlay">
+    <div class="card">
+      <div id="title-logo">TURBO CIRCUIT</div>
+      <div id="title-sub">Kart Grand Prix</div>
+      <p id="title-blurb">Eight karts. Three circuits. Drift to charge a mini-turbo, grab items at the
+        boxes, and hold the throttle on the countdown for a rocket start.</p>
+      <div id="menu"></div>
+      <div id="keyhelp">
+        <kbd>↑</kbd>/<kbd>W</kbd> throttle · <kbd>↓</kbd>/<kbd>S</kbd> brake · <kbd>←</kbd><kbd>→</kbd> steer ·
+        <kbd>Shift</kbd>/<kbd>Space</kbd> drift · <kbd>E</kbd> use item · <kbd>C</kbd> look back ·
+        <kbd>R</kbd> restart · <kbd>M</kbd> mute · <kbd>1</kbd>–<kbd>3</kbd> camera
+      </div>
+    </div>
+  </div>
+
+  <div id="countdown"></div>
+  <div id="loading">LOADING CIRCUIT…</div>
+</div>
+
+<script type="module" src="./src/main.js"></script>
+</body>
+</html>
