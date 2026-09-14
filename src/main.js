@@ -127,7 +127,10 @@ function buildMenu({ results = false } = {}) {
     return;
   }
   // character strip
+  const prevStrip = document.querySelectorAll('#overlay .card > div[data-strip]');
+  prevStrip.forEach(n => n.remove());          // remove the old strip BEFORE adding the new one
   const strip = document.createElement('div');
+  strip.setAttribute('data-strip', '1');
   strip.style.cssText = 'display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin:0 0 16px';
   CHARS.forEach((ch, i) => {
     const b = document.createElement('button');
@@ -138,9 +141,6 @@ function buildMenu({ results = false } = {}) {
     strip.appendChild(b);
   });
   menuEl.parentElement.insertBefore(strip, menuEl);
-  const prevStrip = document.querySelectorAll('#overlay .card > div[data-strip]');
-  prevStrip.forEach(n => n.remove());
-  strip.setAttribute('data-strip', '1');
 
   const chosen = CHARS[charIndex];
   const blurb = document.getElementById('title-blurb');

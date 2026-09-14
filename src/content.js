@@ -19,11 +19,33 @@ export const SIM = {
 // Arcade scale, not a simulator: a neutral kart does ~94 km/h and a lap of Sunset Bay ~48 s.
 export const PHYSICS = {
   topSpeed: 26.0,            // [estimate] m/s before kart stats, coins, boosts
-  accel: 11.0,               // [estimate] m/s^2 at zero speed
+  accel: 17.0,               // [estimate] m/s^2 at zero speed (0→90% of top speed in ~3s)
   coastDrag: 0.55,           // [estimate] 1/s exponential decay when off throttle
   brakeDecel: 18.0,          // [estimate] m/s^2
   reverseSpeed: 7.0,         // [estimate] m/s
   speedCurve: 1.65,          // >1 = stronger pull to top speed at low speed (arcade punch)
+
+  // Cornering grip. Without this, the speed stat decides every race and handling is decorative:
+  // measured, speed-5 karts won 23 of 32 races and handling-5 karts finished last. A kart now
+  // has a lateral-grip ceiling, so a tight corner caps your speed by your HANDLING, not your
+  // engine — the classic speed-versus-grip trade that makes a kart roster a real choice.
+  corner: {
+    grip: 5.4,               // [estimate] m/s^2 of lateral grip at handling 3
+    gripMul: [0.86, 1.14],   // handling 1 → 5
+    driftBonus: 1.30,        // a kart that is already sliding can carry more speed through it
+    scrub: 3.2,              // [estimate] 1/s — how fast speed above the limit is shed
+    minLimit: 9.0,           // never scrub lower than this, so no corner can trap a kart
+  },
+
+  // How far each 1..5 stat slider moves the actual physics. These two ranges are the whole
+  // balance of the roster: topSpeedRange buys straight-line speed, gripMulRange buys corner
+  // speed. Measured point-spread across 8 characters x 8 grid slots is printed by the sim
+  // suite's balance section — widen one range and re-run it rather than guessing.
+  statRange: {
+    topSpeed: [0.86, 1.14],
+    accel: [0.85, 1.16],
+    steerRate: [0.86, 1.14],
+  },
 
   steerRate: 2.05,           // [estimate] rad/s at low speed
   steerRateHighSpeed: 0.92,  // [estimate] rad/s at top speed (speed-sensitive steering)
@@ -31,11 +53,12 @@ export const PHYSICS = {
 
   // surface multipliers on top speed (grass is a real punishment, not a wall)
   surface: {
-    road:   { topSpeedMul: 1.00, accelMul: 1.00 },
-    grass:  { topSpeedMul: 0.52, accelMul: 0.55 },
-    boost:  { topSpeedMul: 1.00, accelMul: 1.00 },
-    ramp:   { topSpeedMul: 0.94, accelMul: 0.80 },
-    wall:   { topSpeedMul: 0.30, accelMul: 0.20 },
+    road:     { topSpeedMul: 1.00, accelMul: 1.00 },
+    shortcut: { topSpeedMul: 0.84, accelMul: 0.82 },   // drivable cut: a real line, but slower
+    grass:    { topSpeedMul: 0.52, accelMul: 0.55 },
+    boost:    { topSpeedMul: 1.00, accelMul: 1.00 },
+    ramp:     { topSpeedMul: 0.94, accelMul: 0.80 },
+    wall:     { topSpeedMul: 0.30, accelMul: 0.20 },
   },
 
   wall: {
@@ -167,24 +190,28 @@ export function rollItem(place, racerCount, rand01) {
 
 // ─────────────────────────────────────────────────────────────── characters
 // Eight originals. `stats` are 1..5 sliders that the sim turns into physics.
-// speed -> topSpeed, accel -> accel, handling -> steerRate, weight -> how much a hit costs you.
+// speed -> topSpeed, accel -> accel, handling -> cornering grip AND steer rate,
+// weight -> shoving power in a collision, but it COSTS acceleration and grip.
+// Every character's four stats total 15, so no roster entry is simply "better": you are always
+// trading something away. (Measured before this rule: the one character with a total of 16 won
+// 42% of races and the two with the worst lines never won at all.)
 export const CHARS = [
-  { id: 'vex',    name: 'Bolt Vexx',  colour: '#e8443a', accent: '#ffd166', skin: '#f0b98a', weight: 3, personality: 'reckless',
-    blurb: 'Top speed merchant. Brakes late, apologises never.', stats: { speed: 5, accel: 3, handling: 2, weight: 3 } },
-  { id: 'nami',   name: 'Nami Isla',  colour: '#2fb8d6', accent: '#eafcff', skin: '#e8b183', weight: 2, personality: 'precise',
-    blurb: 'Races the apex, not the kart. Corners like it is on rails.', stats: { speed: 3, accel: 4, handling: 5, weight: 2 } },
+  { id: 'vex',    name: 'Bolt Vexx',  colour: '#e8443a', accent: '#ffd166', skin: '#f0b98a', weight: 4, personality: 'reckless',
+    blurb: 'Top speed merchant. Brakes late, leans on you in the corners, apologises never.', stats: { speed: 5, accel: 3, handling: 3, weight: 4 } },
+  { id: 'nami',   name: 'Nami Isla',  colour: '#2fb8d6', accent: '#eafcff', skin: '#e8b183', weight: 3, personality: 'precise',
+    blurb: 'Races the apex, not the kart. Corners like it is on rails.', stats: { speed: 3, accel: 4, handling: 5, weight: 3 } },
   { id: 'bruno',  name: 'Bruno Kask', colour: '#f28b1f', accent: '#4a2a12', skin: '#d79a63', weight: 5, personality: 'bully',
-    blurb: 'Heavyweight. Bumps you off the line and calls it racing.', stats: { speed: 4, accel: 2, handling: 3, weight: 5 } },
-  { id: 'pixel',  name: 'Pixel-9',    colour: '#e255c8', accent: '#7cf9ff', skin: '#c9c9d6', weight: 2, personality: 'quirky',
-    blurb: 'A drifting machine with a processor for a heart.', stats: { speed: 3, accel: 5, handling: 4, weight: 2 } },
-  { id: 'sable',  name: 'Sable Ravn', colour: '#6b4bc4', accent: '#c9a6ff', skin: '#c98f6a', weight: 4, personality: 'cold',
-    blurb: 'Never speaks on the radio. Never out of the top three.', stats: { speed: 5, accel: 3, handling: 4, weight: 4 } },
+    blurb: 'Heavyweight. Bumps you off the line and calls it racing.', stats: { speed: 4, accel: 2, handling: 4, weight: 5 } },
+  { id: 'pixel',  name: 'Pixel-9',    colour: '#e255c8', accent: '#7cf9ff', skin: '#c9c9d6', weight: 3, personality: 'quirky',
+    blurb: 'A drifting machine with a processor for a heart.', stats: { speed: 3, accel: 5, handling: 4, weight: 3 } },
+  { id: 'sable',  name: 'Sable Ravn', colour: '#6b4bc4', accent: '#c9a6ff', skin: '#c98f6a', weight: 3, personality: 'cold',
+    blurb: 'Never speaks on the radio. Fast and tidy, but slow off the line.', stats: { speed: 5, accel: 3, handling: 4, weight: 3 } },
   { id: 'juno',   name: 'Juno Sky',   colour: '#f5d13c', accent: '#1f3b8f', skin: '#f2c39b', weight: 3, personality: 'cheerful',
     blurb: 'The all-rounder. Good at everything, smug about it.', stats: { speed: 4, accel: 4, handling: 4, weight: 3 } },
   { id: 'fang',   name: 'Fang Rusk',  colour: '#39b06a', accent: '#0f2f1c', skin: '#8fc9a3', weight: 4, personality: 'aggressive',
-    blurb: 'Drives with teeth. Items are for people behind him.', stats: { speed: 4, accel: 3, handling: 3, weight: 4 } },
-  { id: 'ola',    name: 'Ola Mint',   colour: '#3ed6a4', accent: '#0b2b26', skin: '#a9754f', weight: 1, personality: 'nervous',
-    blurb: 'Fastest off the line, then prays through every corner.', stats: { speed: 3, accel: 5, handling: 5, weight: 1 } },
+    blurb: 'Drives with teeth. Items are for people behind him.', stats: { speed: 4, accel: 3, handling: 4, weight: 4 } },
+  { id: 'ola',    name: 'Ola Mint',   colour: '#3ed6a4', accent: '#0b2b26', skin: '#a9754f', weight: 2, personality: 'nervous',
+    blurb: 'Fastest off the line and the lightest through a corner, then prays down the straight.', stats: { speed: 3, accel: 5, handling: 5, weight: 2 } },
 ];
 
 // ─────────────────────────────────────────────────────────────── karts
@@ -230,7 +257,7 @@ export const TRACKS = [
     difficulty: 3,
     control: [
       [   0, -200], [ 110, -195], [ 170, -140], [ 165,  -60], [ 110,  -20],
-      [  40,  -30], [ -10,  -70], [ -60, -100], [ -90,  -60], [ -70,   10],
+      [  40,  -30], [ -12,  -76], [ -78, -106], [-112,  -40], [ -66,   18],
       [   0,   60], [  90,   90], [ 150,  140], [ 140,  195], [  40,  215],
       [ -80,  205], [-170,  160], [-200,   80], [-190,  -30], [-140, -140],
       [ -60, -195],
@@ -288,9 +315,8 @@ export const AI = {
   itemHoldTicks: 90,         // a bot waits this long for a better moment to fire
   aggression: [0.9, 0.55, 0.95, 0.6, 0.75, 0.5, 0.9, 0.45],
   jitter: 0.22,              // radians of wander, so bots are not identical
-  driftMinCurvature: 0.010,  // 1/m — corner tight enough to be worth a drift
+  driftMinCurvature: 0.008,  // 1/m — corner tight enough to be worth a drift
   avoidRadius: 4.2,
-  brakeCurvature: 0.020,     // brake when the corner ahead is tighter than this
   lookBackTicks: 40,
 };
 
